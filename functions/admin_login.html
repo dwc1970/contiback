@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro Autoridad | Club Constitución</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --oro: #fbc02d; --fondo: #0a0c10; --card: #161b22; --borde: #30363d; }
+        body { font-family: 'Inter', sans-serif; background: var(--fondo); color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 40px; border-radius: 20px; border: 1px solid var(--borde); width: 100%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0d1117; border: 1px solid var(--borde); color: white; border-radius: 8px; box-sizing: border-box; }
+        label { display: block; text-align: left; color: var(--oro); font-size: 0.8rem; font-weight: bold; }
+        .btn { width: 100%; padding: 15px; background: var(--oro); color: black; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <i class="fas fa-user-shield" style="font-size: 3rem; color: var(--oro);"></i>
+        <h2>ALTA DE AUTORIDAD</h2>
+        <label>Usuario</label>
+        <input type="text" id="user_login">
+        <label>Contraseña</label>
+        <input type="password" id="pass_login">
+        <button class="btn" onclick="entrar()">ENTRAR AL PANEL</button>
+        <p><a href="admin_registro.html" style="color: #666; font-size: 0.8rem; text-decoration: none;">Crear cuenta nueva</a></p>
+    </div>
+    <script>
+        function entrar() {
+            const u = document.getElementById('user_login').value;
+            const p = document.getElementById('pass_login').value;
+            const guardado = JSON.parse(localStorage.getItem('adminConstitucion'));
+            if(guardado && guardado.usuario === u && guardado.clave === btoa(p)) {
+                window.location.href = "administrar_club.html";
+            } else {
+                alert("Usuario o Clave incorrectos");
+            }
+        }
+    </script>
+</body>
+</html>

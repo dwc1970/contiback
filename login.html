@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Administración C.S.D. Constitución</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; }
+        
+        .login-box {
+            max-width: 400px;
+            margin: 100px auto;
+            background: #25282e;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        
+        .login-box img { 
+            width: 100px; 
+            margin-bottom: 20px; 
+            border-radius: 50%; 
+            border: 3px solid #fbc02d; 
+            background: white;
+        }
+        
+        .login-box h2 { margin-bottom: 25px; color: #fbc02d; text-transform: uppercase; letter-spacing: 1px; }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background: #1a1d23;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .login-box input:focus { border-color: #fbc02d; }
+        
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #fbc02d;
+            color: black;
+            border: none;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-login:hover { background: #d4a017; transform: translateY(-2px); }
+        .btn-login:disabled { background: #555; cursor: not-allowed; }
+        
+        #error-msg { color: #ff4444; margin-top: 15px; display: none; font-size: 14px; background: rgba(255, 0, 0, 0.1); padding: 10px; border-radius: 4px; }
+        
+        .back-home { margin-top: 20px; display: block; color: #888; text-decoration: none; font-size: 13px; }
+        .back-home:hover { color: #fbc02d; }
+    </style>
+</head>
+<body style="background-color: #1a1d23;">
+
+    <div class="login-box">
+        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo Constitución" onerror="this.src='https://via.placeholder.com/100?text=Canario'">
+        <h2>Acceso Canario</h2>
+        
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Usuario Administrador" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit" id="btnSubmit" class="btn-login">INGRESAR AL PANEL</button>
+        </form>
+        
+        <p id="error-msg"></p>
+
+        <a href="{{ url_for('index') }}" class="back-home"><i class="fas fa-arrow-left"></i> Volver a la Web</a>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const usuario = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const mensajeError = document.getElementById('error-msg');
+            const btnSubmit = document.getElementById('btnSubmit');
+
+            // Estado de carga
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = "VERIFICANDO...";
+            mensajeError.style.display = "none";
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // IMPORTANTE: Guardamos la "llave" para que gestion-socios.html nos deje entrar
+                    sessionStorage.setItem('admin_auth', 'true');
+                    window.location.href = "/administrar-club";
+                } else {
+                    mensajeError.style.display = "block";
+                    mensajeError.innerText = data.error || "Credenciales incorrectas";
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerText = "INGRESAR AL PANEL";
+                }
+            } catch (error) {
+                mensajeError.style.display = "block";
+                mensajeError.innerText = "Error de conexión con el servidor";
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = "INGRESAR AL PANEL";
+            }
+        });
+    </script>
+</body>
+</html>

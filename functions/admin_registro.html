@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro Admin | Club Constitución</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --oro: #fbc02d; --fondo: #0a0c10; --card: #161b22; }
+        body { font-family: 'Inter', sans-serif; background: var(--fondo); color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 40px; border-radius: 20px; border: 1px solid #30363d; width: 380px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
+        label { color: var(--oro); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
+        .btn { width: 100%; padding: 15px; background: var(--oro); color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 style="text-align:center">ALTA DE ADMIN</h2>
+        <div style="background: rgba(251,192,45,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8rem; border: 1px dashed var(--oro);">
+            <i class="fas fa-key"></i> REQUIERE LLAVE MAESTRA
+        </div>
+        <label>Llave de Seguridad</label>
+        <input type="password" id="llave" placeholder="Ingresa llaveclub">
+        <label>Nuevo Usuario</label>
+        <input type="text" id="u">
+        <label>Nueva Contraseña</label>
+        <input type="password" id="p">
+        <button class="btn" onclick="crearAdmin()">REGISTRAR Y ACTIVAR</button>
+        <p style="text-align:center; font-size: 0.8rem; margin-top: 15px;">
+            <a href="admin_login.html" style="color: #666; text-decoration: none;">Volver al Login</a>
+        </p>
+    </div>
+    <script>
+        function crearAdmin() {
+            const llave = document.getElementById('llave').value;
+            const u = document.getElementById('u').value;
+            const p = document.getElementById('p').value;
+            if (llave !== "llaveclub") return alert("Llave Maestra Incorrecta");
+            if (u.length < 3 || p.length < 4) return alert("Datos muy cortos");
+            localStorage.setItem('adminConstitucion', JSON.stringify({ usuario: u, clave: btoa(p) }));
+            alert("¡Administrador Creado con Éxito!");
+            window.location.href = "admin_login.html";
+        }
+    </script>
+</body>
+</html>
