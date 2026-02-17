@@ -8,6 +8,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
         :root { --oro: #fbc02d; --fondo: #0a0c10; --card: #161b22; --borde: #30363d; --texto-gris: #8b949e; --verde: #4cd137; --rojo: #e74c3c; }
@@ -107,7 +108,7 @@
             <div class="card-admin">
                 <h3>Galería de Fotos</h3>
                 <div id="grid-fotos" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
-                    </div>
+                </div>
             </div>
             <button class="btn-principal" onclick="guardarTodoClub()">PUBLICAR CAMBIOS EN EL CLUB</button>
         </div>
@@ -151,14 +152,14 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-socios-body">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuración de Firebase
+        // Configuración de Firebase - csydconstitucion-8b8bb
         const firebaseConfig = { 
             apiKey: "AIzaSyDgg57r83Wxt5COBhKWVfIA1JzlhGmiVaE", 
             authDomain: "csydconstitucion-8b8bb.firebaseapp.com", 
@@ -169,8 +170,13 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // Función para cambiar de pestaña
+        // Seguridad: Si no está logueado, lo saca (Opcional, activar tras probar)
+        /* auth.onAuthStateChanged(user => {
+            if (!user) window.location.href = "admin_login.html";
+        }); */
+
         function ver(id, el) {
             document.querySelectorAll('.content-view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
@@ -178,7 +184,6 @@
             el.classList.add('active');
         }
 
-        // Previsualizar imágenes locales
         function leerImg(input, idDestino) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -187,10 +192,9 @@
             }
         }
 
-        // Carga inicial de datos
         window.onload = () => {
-            // Generar campos de la galería
             const containerG = document.getElementById('grid-fotos');
+            containerG.innerHTML = "";
             for(let i=0; i<6; i++) {
                 containerG.innerHTML += `
                 <div style="background:#000; padding:10px; border-radius:10px; border:1px solid var(--borde);">
@@ -203,7 +207,7 @@
                 </div>`;
             }
 
-            // Traer datos de "El Club"
+            // Datos del Club
             db.collection("config").doc("club").onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -214,7 +218,6 @@
                     if(data.imgP) document.getElementById('img-p').src = data.imgP;
                     if(data.imgV) document.getElementById('img-v').src = data.imgV;
                     if(data.imgS) document.getElementById('img-s').src = data.imgS;
-                    
                     if(data.galeria) {
                         data.galeria.forEach((f, i) => {
                             if(document.getElementById(`g-img-${i}`)) {
@@ -227,7 +230,7 @@
                 }
             });
 
-            // Traer datos del Partido
+            // Datos del Partido
             db.collection("config").doc("partido").onSnapshot((doc) => {
                 if(doc.exists) {
                     const p = doc.data();
@@ -241,7 +244,7 @@
                 }
             });
 
-            // Traer Socios
+            // Socios en Tiempo Real
             db.collection("socios").onSnapshot((snapshot) => {
                 const tabla = document.getElementById('tabla-socios-body');
                 document.getElementById('dash-recauda').innerText = snapshot.size;
@@ -258,41 +261,47 @@
             });
         };
 
-        // Guardar sección Club
         async function guardarTodoClub() {
-            let fotosG = [];
-            for(let i=0; i<6; i++) {
-                fotosG.push({
-                    url: document.getElementById('g-img-'+i).src,
-                    titulo: document.getElementById('g-tit-'+i).value,
-                    desc: document.getElementById('g-desc-'+i).value
+            try {
+                let fotosG = [];
+                for(let i=0; i<6; i++) {
+                    fotosG.push({
+                        url: document.getElementById('g-img-'+i).src,
+                        titulo: document.getElementById('g-tit-'+i).value,
+                        desc: document.getElementById('g-desc-'+i).value
+                    });
+                }
+                await db.collection("config").doc("club").set({
+                    historia: document.getElementById('historia-input').value,
+                    pNom: document.getElementById('nom-p').value,
+                    vNom: document.getElementById('nom-v').value,
+                    sNom: document.getElementById('nom-s').value,
+                    imgP: document.getElementById('img-p').src,
+                    imgV: document.getElementById('img-v').src,
+                    imgS: document.getElementById('img-s').src,
+                    galeria: fotosG,
+                    ultimaModificacion: new Date()
                 });
+                alert("✅ Club Actualizado!");
+            } catch (e) {
+                alert("❌ Error de permisos o datos muy pesados.");
             }
-
-            await db.collection("config").doc("club").set({
-                historia: document.getElementById('historia-input').value,
-                pNom: document.getElementById('nom-p').value,
-                vNom: document.getElementById('nom-v').value,
-                sNom: document.getElementById('nom-s').value,
-                imgP: document.getElementById('img-p').src,
-                imgV: document.getElementById('img-v').src,
-                imgS: document.getElementById('img-s').src,
-                galeria: fotosG
-            });
-            alert("✅ ¡Éxito! Datos del club actualizados.");
         }
 
-        // Guardar sección Partido
         async function guardarPartido() {
-            await db.collection("config").doc("partido").set({
-                rival: document.getElementById('rival-input').value.toUpperCase(),
-                fecha: document.getElementById('fecha').value,
-                hora: document.getElementById('hora').value,
-                lugar: document.getElementById('lugar').value.toUpperCase(),
-                logoLocal: document.getElementById('logo-local-prev').src,
-                logoRival: document.getElementById('logo-rival-prev').src
-            });
-            alert("✅ Partido actualizado correctamente.");
+            try {
+                await db.collection("config").doc("partido").set({
+                    rival: document.getElementById('rival-input').value.toUpperCase(),
+                    fecha: document.getElementById('fecha').value,
+                    hora: document.getElementById('hora').value,
+                    lugar: document.getElementById('lugar').value.toUpperCase(),
+                    logoLocal: document.getElementById('logo-local-prev').src,
+                    logoRival: document.getElementById('logo-rival-prev').src
+                });
+                alert("✅ Partido Actualizado!");
+            } catch (e) {
+                alert("❌ Error al guardar partido.");
+            }
         }
     </script>
 </body>
