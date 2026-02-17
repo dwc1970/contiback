@@ -108,7 +108,7 @@
             <div class="card-admin">
                 <h3>Galería de Fotos</h3>
                 <div id="grid-fotos" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
-                </div>
+                    </div>
             </div>
             <button class="btn-principal" onclick="guardarTodoClub()">PUBLICAR CAMBIOS EN EL CLUB</button>
         </div>
@@ -159,7 +159,6 @@
     </div>
 
     <script>
-        // Configuración de Firebase - csydconstitucion-8b8bb
         const firebaseConfig = { 
             apiKey: "AIzaSyDgg57r83Wxt5COBhKWVfIA1JzlhGmiVaE", 
             authDomain: "csydconstitucion-8b8bb.firebaseapp.com", 
@@ -171,11 +170,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-
-        // Seguridad: Si no está logueado, lo saca (Opcional, activar tras probar)
-        /* auth.onAuthStateChanged(user => {
-            if (!user) window.location.href = "admin_login.html";
-        }); */
 
         function ver(id, el) {
             document.querySelectorAll('.content-view').forEach(v => v.classList.remove('active'));
@@ -193,6 +187,7 @@
         }
 
         window.onload = () => {
+            // 1. GENERAR ESTRUCTURA FIJA (Evita que la pantalla tirite) [cite: 2026-02-15]
             const containerG = document.getElementById('grid-fotos');
             containerG.innerHTML = "";
             for(let i=0; i<6; i++) {
@@ -207,7 +202,7 @@
                 </div>`;
             }
 
-            // Datos del Club
+            // 2. ESCUCHA DE DATOS (Solo rellena los campos, no recrea el HTML) [cite: 2026-02-15]
             db.collection("config").doc("club").onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -218,19 +213,20 @@
                     if(data.imgP) document.getElementById('img-p').src = data.imgP;
                     if(data.imgV) document.getElementById('img-v').src = data.imgV;
                     if(data.imgS) document.getElementById('img-s').src = data.imgS;
+                    
                     if(data.galeria) {
                         data.galeria.forEach((f, i) => {
-                            if(document.getElementById(`g-img-${i}`)) {
-                                document.getElementById(`g-img-${i}`).src = f.url || "../perfil.png";
-                                document.getElementById(`g-tit-${i}`).value = f.titulo || "";
-                                document.getElementById(`g-desc-${i}`).value = f.desc || "";
-                            }
+                            let img = document.getElementById(`g-img-${i}`);
+                            let tit = document.getElementById(`g-tit-${i}`);
+                            let desc = document.getElementById(`g-desc-${i}`);
+                            if(img) img.src = f.url || "../perfil.png";
+                            if(tit) tit.value = f.titulo || "";
+                            if(desc) desc.value = f.desc || "";
                         });
                     }
                 }
             });
 
-            // Datos del Partido
             db.collection("config").doc("partido").onSnapshot((doc) => {
                 if(doc.exists) {
                     const p = doc.data();
@@ -244,7 +240,6 @@
                 }
             });
 
-            // Socios en Tiempo Real
             db.collection("socios").onSnapshot((snapshot) => {
                 const tabla = document.getElementById('tabla-socios-body');
                 document.getElementById('dash-recauda').innerText = snapshot.size;
@@ -284,7 +279,7 @@
                 });
                 alert("✅ Club Actualizado!");
             } catch (e) {
-                alert("❌ Error de permisos o datos muy pesados.");
+                alert("❌ Error: Posiblemente imágenes muy pesadas.");
             }
         }
 
