@@ -40,10 +40,50 @@
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; color: var(--oro); padding: 10px; border-bottom: 2px solid var(--borde); }
-        td { padding: 10px; border-bottom: 1px solid var(--borde); }
+        td { padding: 15px; border-bottom: 1px solid var(--borde); }
+
+        /* AJUSTE: Panel de cuotas más grande y legible */
+        .btn-cuota { background: #30363d; color: white; border: none; padding: 12px 10px; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .btn-cuota.pagado { background: var(--verde); color: black; font-weight: bold; }
+        
+        .modal-cuotas { 
+            display:none; 
+            position:fixed; 
+            top:50%; 
+            left:50%; 
+            transform:translate(-50%, -50%); 
+            background: #1c2128; 
+            border: 2px solid var(--oro); 
+            padding: 40px; 
+            border-radius: 20px; 
+            z-index: 2000; 
+            width: 90%; 
+            max-width: 600px; 
+            box-shadow: 0 0 60px rgba(0,0,0,0.9); 
+        }
+        
+        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1999; backdrop-filter: blur(5px); }
+        
+        .grid-meses-admin { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin-top: 25px; 
+        }
+
+        #modal-nombre-socio { font-size: 2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .modal-instruccion { font-size: 1.1rem; color: var(--texto-gris); margin-bottom: 10px; }
     </style>
 </head>
 <body>
+
+    <div id="overlay" class="overlay" onclick="cerrarModal()"></div>
+    <div id="modalCuotas" class="modal-cuotas">
+        <h2 id="modal-nombre-socio" style="color:var(--oro); margin: 0 0 10px 0;">SOCIO</h2>
+        <p class="modal-instruccion">Marque los meses que el socio ha pagado (Año 2026):</p>
+        <div id="meses-container" class="grid-meses-admin"></div>
+        <button class="btn-principal" style="font-size: 1.1rem; padding: 20px;" onclick="cerrarModal()">GUARDAR Y CERRAR</button>
+    </div>
 
     <div class="sidebar">
         <div class="brand">
@@ -64,7 +104,7 @@
             <h1>Resumen del Club</h1>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="card-admin">
-                    <h3>Socios Activos</h3>
+                    <h3>Socios Registrados</h3>
                     <h2 id="dash-recauda" style="color:var(--verde)">0</h2>
                 </div>
                 <div class="card-admin">
@@ -107,8 +147,7 @@
 
             <div class="card-admin">
                 <h3>Galería de Fotos</h3>
-                <div id="grid-fotos" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
-                    </div>
+                <div id="grid-fotos" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;"></div>
             </div>
             <button class="btn-principal" onclick="guardarTodoClub()">PUBLICAR CAMBIOS EN EL CLUB</button>
         </div>
@@ -141,7 +180,7 @@
         </div>
 
         <div id="socios" class="content-view">
-            <h1>Listado de Socios Registrados</h1>
+            <h1>Gestión de Socios y Cuotas</h1>
             <div class="card-admin">
                 <table>
                     <thead>
@@ -149,10 +188,10 @@
                             <th>DNI</th>
                             <th>NOMBRE COMPLETO</th>
                             <th>ESTADO</th>
+                            <th>ACCIONES</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-socios-body">
-                    </tbody>
+                    <tbody id="tabla-socios-body"></tbody>
                 </table>
             </div>
         </div>
@@ -169,7 +208,8 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
+        const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        let socioSeleccionadoId = null;
 
         function ver(id, el) {
             document.querySelectorAll('.content-view').forEach(v => v.classList.remove('active'));
@@ -187,23 +227,13 @@
         }
 
         window.onload = () => {
-            // 1. GENERAR ESTRUCTURA FIJA (Evita que la pantalla tirite) [cite: 2026-02-15]
             const containerG = document.getElementById('grid-fotos');
             containerG.innerHTML = "";
             for(let i=0; i<6; i++) {
-                containerG.innerHTML += `
-                <div style="background:#000; padding:10px; border-radius:10px; border:1px solid var(--borde);">
-                    <img id="g-img-${i}" src="../perfil.png" style="width:100%; height:100px; object-fit:cover; margin-bottom:5px;">
-                    <input type="file" accept="image/*" onchange="leerImg(this, 'g-img-${i}')">
-                    <label>Título</label>
-                    <input type="text" id="g-tit-${i}">
-                    <label>Breve Desc.</label>
-                    <input type="text" id="g-desc-${i}">
-                </div>`;
+                containerG.innerHTML += `<div style="background:#000; padding:10px; border-radius:10px; border:1px solid var(--borde);"><img id="g-img-${i}" src="../perfil.png" style="width:100%; height:100px; object-fit:cover; margin-bottom:5px;"><input type="file" accept="image/*" onchange="leerImg(this, 'g-img-${i}')"><label>Título</label><input type="text" id="g-tit-${i}"><label>Breve Desc.</label><input type="text" id="g-desc-${i}"></div>`;
             }
 
-            // 2. ESCUCHA DE DATOS (Solo rellena los campos, no recrea el HTML) [cite: 2026-02-15]
-            db.collection("config").doc("club").onSnapshot((doc) => {
+            db.collection("config").doc("club").onSnapshot(doc => {
                 if (doc.exists) {
                     const data = doc.data();
                     document.getElementById('historia-input').value = data.historia || "";
@@ -213,21 +243,15 @@
                     if(data.imgP) document.getElementById('img-p').src = data.imgP;
                     if(data.imgV) document.getElementById('img-v').src = data.imgV;
                     if(data.imgS) document.getElementById('img-s').src = data.imgS;
-                    
-                    if(data.galeria) {
-                        data.galeria.forEach((f, i) => {
-                            let img = document.getElementById(`g-img-${i}`);
-                            let tit = document.getElementById(`g-tit-${i}`);
-                            let desc = document.getElementById(`g-desc-${i}`);
-                            if(img) img.src = f.url || "../perfil.png";
-                            if(tit) tit.value = f.titulo || "";
-                            if(desc) desc.value = f.desc || "";
-                        });
-                    }
+                    if(data.galeria) data.galeria.forEach((f, i) => {
+                        if(document.getElementById(`g-img-${i}`)) document.getElementById(`g-img-${i}`).src = f.url || "../perfil.png";
+                        if(document.getElementById(`g-tit-${i}`)) document.getElementById(`g-tit-${i}`).value = f.titulo || "";
+                        if(document.getElementById(`g-desc-${i}`)) document.getElementById(`g-desc-${i}`).value = f.desc || "";
+                    });
                 }
             });
 
-            db.collection("config").doc("partido").onSnapshot((doc) => {
+            db.collection("config").doc("partido").onSnapshot(doc => {
                 if(doc.exists) {
                     const p = doc.data();
                     document.getElementById('dash-rival').innerText = p.rival || "--";
@@ -240,21 +264,57 @@
                 }
             });
 
-            db.collection("socios").onSnapshot((snapshot) => {
+            db.collection("socios").onSnapshot(snapshot => {
                 const tabla = document.getElementById('tabla-socios-body');
                 document.getElementById('dash-recauda').innerText = snapshot.size;
                 tabla.innerHTML = "";
-                snapshot.forEach((doc) => {
+                snapshot.forEach(doc => {
                     const s = doc.data();
-                    tabla.innerHTML += `
-                    <tr>
+                    const id = doc.id;
+                    tabla.innerHTML += `<tr>
                         <td>${s.dni || '---'}</td>
-                        <td>${s.nombre || 'Sin nombre'}</td>
-                        <td style="color:var(--verde)">ACTIVO</td>
+                        <td style="font-weight:bold;">${s.nombre || 'Sin nombre'}</td>
+                        <td style="color:${s.estado === 'deuda' ? 'var(--rojo)' : 'var(--verde)'}; font-weight:bold;">${(s.estado || 'ACTIVO').toUpperCase()}</td>
+                        <td><button class="btn-cuota pagado" style="padding: 8px 15px;" onclick="abrirCuotas('${id}', '${s.nombre}')"><i class="fas fa-dollar-sign"></i> GESTIONAR CUOTAS</button></td>
                     </tr>`;
                 });
             });
         };
+
+        async function abrirCuotas(id, nombre) {
+            socioSeleccionadoId = id;
+            document.getElementById('modal-nombre-socio').innerText = nombre;
+            const doc = await db.collection("socios").doc(id).get();
+            const pagos = doc.data().pagos || {};
+            
+            const container = document.getElementById('meses-container');
+            container.innerHTML = "";
+            
+            mesesNombres.forEach(mes => {
+                const key = mes.toLowerCase().substring(0, 3);
+                const estaPagado = pagos[key] || false;
+                container.innerHTML += `<button id="btn-${key}" class="btn-cuota ${estaPagado ? 'pagado' : ''}" onclick="toggleMes('${key}')">${mes}</button>`;
+            });
+
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('modalCuotas').style.display = 'block';
+        }
+
+        async function toggleMes(key) {
+            const btn = document.getElementById('btn-' + key);
+            const nuevoEstado = !btn.classList.contains('pagado');
+            if(nuevoEstado) btn.classList.add('pagado');
+            else btn.classList.remove('pagado');
+
+            const updateObj = {};
+            updateObj[`pagos.${key}`] = nuevoEstado;
+            await db.collection("socios").doc(socioSeleccionadoId).update(updateObj);
+        }
+
+        function cerrarModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('modalCuotas').style.display = 'none';
+        }
 
         async function guardarTodoClub() {
             try {
@@ -278,9 +338,7 @@
                     ultimaModificacion: new Date()
                 });
                 alert("✅ Club Actualizado!");
-            } catch (e) {
-                alert("❌ Error: Posiblemente imágenes muy pesadas.");
-            }
+            } catch (e) { alert("❌ Error: Posiblemente imágenes muy pesadas."); }
         }
 
         async function guardarPartido() {
@@ -294,9 +352,7 @@
                     logoRival: document.getElementById('logo-rival-prev').src
                 });
                 alert("✅ Partido Actualizado!");
-            } catch (e) {
-                alert("❌ Error al guardar partido.");
-            }
+            } catch (e) { alert("❌ Error al guardar partido."); }
         }
     </script>
 </body>
